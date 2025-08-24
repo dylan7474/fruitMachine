@@ -1,0 +1,36 @@
+#!/usr/bin/env sh
+
+missing=0
+
+check_tool() {
+    if ! command -v "$1" >/dev/null 2>&1; then
+        echo "Missing required tool: $1. $2"
+        missing=1
+    else
+        echo "Found $1"
+    fi
+}
+
+check_pkg() {
+    if ! pkg-config --exists "$1"; then
+        echo "Missing library: $1. $2"
+        missing=1
+    else
+        echo "Found $1"
+    fi
+}
+
+check_tool gcc "Install with: sudo apt install build-essential"
+check_tool sdl2-config "Install SDL2 development package, e.g., sudo apt install libsdl2-dev"
+check_tool pkg-config "Install with: sudo apt install pkg-config"
+
+check_pkg SDL2_ttf "Install with: sudo apt install libsdl2-ttf-dev"
+check_pkg fftw3 "Install with: sudo apt install libfftw3-dev"
+
+if [ $missing -eq 0 ]; then
+    echo "All dependencies satisfied."
+    exit 0
+else
+    echo "Please install missing dependencies."
+    exit 1
+fi
