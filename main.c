@@ -93,23 +93,31 @@ int main(int argc, char *argv[]) {
     srand((unsigned)time(NULL));
 
     Reel reels[NUM_REELS] = {0};
-    int reel_w = win_w / 5;
-    int reel_h = win_h / 3;
-    int spacing = reel_w / 2;
-    int start_x = (win_w - (NUM_REELS * reel_w + (NUM_REELS - 1) * spacing)) / 2;
-    int slot_y = win_h / 3 - reel_h / 2;
+
+    /*
+     * Reel placement tuned to line up with the windows on the background
+     * artwork.  The numbers below are ratios of the overall window size so
+     * the layout still scales if the window dimensions change.
+     */
+    const float reel_centers[NUM_REELS] = {0.26f, 0.5f, 0.74f};
+    const float reel_y_center = 0.42f;
+    const float reel_width_ratio = 0.14f;
+    const float reel_height_ratio = 0.25f;
+
+    int reel_w = (int)(win_w * reel_width_ratio);
+    int reel_h = (int)(win_h * reel_height_ratio);
 
     SDL_Rect reel_rects[NUM_REELS];
     for (int i = 0; i < NUM_REELS; ++i) {
-        reel_rects[i].x = start_x + i * (reel_w + spacing);
-        reel_rects[i].y = slot_y;
         reel_rects[i].w = reel_w;
         reel_rects[i].h = reel_h;
+        reel_rects[i].x = (int)(win_w * reel_centers[i] - reel_w / 2);
+        reel_rects[i].y = (int)(win_h * reel_y_center - reel_h / 2);
     }
 
     SDL_Rect start_button = {
         win_w / 2 - reel_w,
-        slot_y + reel_h + 20,
+        reel_rects[0].y + reel_h + 20,
         reel_w * 2,
         reel_h / 2
     };
