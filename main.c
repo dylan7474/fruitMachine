@@ -22,8 +22,10 @@ const char *symbol_files[NUM_SYMBOLS] = {
 typedef struct {
     int spinning;
     Uint32 stop_time;
-    Uint32 next_switch;
+    float offset;
+    int prev;
     int current;
+    int next;
 } Reel;
 
 int main(int argc, char *argv[]) {
@@ -93,6 +95,12 @@ int main(int argc, char *argv[]) {
     srand((unsigned)time(NULL));
 
     Reel reels[NUM_REELS] = {0};
+    for (int i = 0; i < NUM_REELS; ++i) {
+        reels[i].prev = rand() % NUM_SYMBOLS;
+        reels[i].current = rand() % NUM_SYMBOLS;
+        reels[i].next = rand() % NUM_SYMBOLS;
+        reels[i].offset = 0;
+    }
 
     /*
      * Reel placement tuned to line up with the windows on the background
@@ -106,6 +114,7 @@ int main(int argc, char *argv[]) {
 
     int reel_w = (int)(win_w * reel_width_ratio);
     int reel_h = (int)(win_h * reel_height_ratio);
+    int spin_speed = reel_h / 8;
 
     SDL_Rect reel_rects[NUM_REELS];
     for (int i = 0; i < NUM_REELS; ++i) {
@@ -138,7 +147,10 @@ int main(int argc, char *argv[]) {
                     for (int i = 0; i < NUM_REELS; ++i) {
                         reels[i].spinning = 1;
                         reels[i].stop_time = SDL_GetTicks() + 500 + i * 500;
-                        reels[i].next_switch = 0;
+                        reels[i].offset = 0;
+                        reels[i].prev = rand() % NUM_SYMBOLS;
+                        reels[i].current = rand() % NUM_SYMBOLS;
+                        reels[i].next = rand() % NUM_SYMBOLS;
                     }
                 }
             }
@@ -146,13 +158,20 @@ int main(int argc, char *argv[]) {
 
         Uint32 now = SDL_GetTicks();
         for (int i = 0; i < NUM_REELS; ++i) {
-            if (reels[i].spinning) {
-                if (now >= reels[i].stop_time) {
-                    reels[i].spinning = 0;
+            if (reels[i].spinning || reels[i].offset > 0) {
+                reels[i].offset += spin_speed;
+                if (reels[i].offset >= reel_h) {
+                    reels[i].offset -= reel_h;
+                    reels[i].prev = reels[i].current;
+                    reels[i].current = reels[i].next;
+                    if (reels[i].spinning) {
+                        reels[i].next = rand() % NUM_SYMBOLS;
+                    } else {
+                        reels[i].offset = 0;
+                    }
                 }
-                if (now >= reels[i].next_switch) {
-                    reels[i].current = rand() % NUM_SYMBOLS;
-                    reels[i].next_switch = now + 100;
+                if (reels[i].spinning && now >= reels[i].stop_time) {
+                    reels[i].spinning = 0;
                 }
             }
         }
@@ -161,7 +180,17 @@ int main(int argc, char *argv[]) {
         SDL_Rect bg_rect = {0, 0, win_w, win_h};
         SDL_RenderCopy(ren, background, NULL, &bg_rect);
         for (int i = 0; i < NUM_REELS; ++i) {
-            SDL_RenderCopy(ren, symbols[reels[i].current], NULL, &reel_rects[i]);
+            SDL_RenderSetClipRect(ren, &reel_rects[i]);
+            SDL_Rect dest = {reel_rects[i].x,
+                             reel_rects[i].y - reel_h + (int)reels[i].offset,
+                             reel_w,
+                             reel_h};
+            SDL_RenderCopy(ren, symbols[reels[i].prev], NULL, &dest);
+            dest.y = reel_rects[i].y + (int)reels[i].offset;
+            SDL_RenderCopy(ren, symbols[reels[i].current], NULL, &dest);
+            dest.y = reel_rects[i].y + reel_h + (int)reels[i].offset;
+            SDL_RenderCopy(ren, symbols[reels[i].next], NULL, &dest);
+            SDL_RenderSetClipRect(ren, NULL);
         }
         SDL_RenderPresent(ren);
     }
