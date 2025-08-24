@@ -38,7 +38,14 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    SDL_Window *win = SDL_CreateWindow("Fruit Machine", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, 640, 480, 0);
+    SDL_Window *win = SDL_CreateWindow(
+        "Fruit Machine",
+        SDL_WINDOWPOS_CENTERED,
+        SDL_WINDOWPOS_CENTERED,
+        1368,
+        768,
+        SDL_WINDOW_FULLSCREEN
+    );
     if (!win) {
         SDL_Log("SDL_CreateWindow failed: %s", SDL_GetError());
         IMG_Quit();
@@ -65,9 +72,8 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    int bg_w, bg_h;
-    SDL_QueryTexture(background, NULL, NULL, &bg_w, &bg_h);
-    SDL_SetWindowSize(win, bg_w, bg_h);
+    int win_w, win_h;
+    SDL_GetWindowSize(win, &win_w, &win_h);
 
     SDL_Texture *symbols[NUM_SYMBOLS];
     for (int i = 0; i < NUM_SYMBOLS; ++i) {
@@ -87,11 +93,11 @@ int main(int argc, char *argv[]) {
     srand((unsigned)time(NULL));
 
     Reel reels[NUM_REELS] = {0};
-    int reel_w = bg_w / 5;
-    int reel_h = bg_h / 3;
+    int reel_w = win_w / 5;
+    int reel_h = win_h / 3;
     int spacing = reel_w / 2;
-    int start_x = (bg_w - (NUM_REELS * reel_w + (NUM_REELS - 1) * spacing)) / 2;
-    int slot_y = bg_h / 3 - reel_h / 2;
+    int start_x = (win_w - (NUM_REELS * reel_w + (NUM_REELS - 1) * spacing)) / 2;
+    int slot_y = win_h / 3 - reel_h / 2;
 
     SDL_Rect reel_rects[NUM_REELS];
     for (int i = 0; i < NUM_REELS; ++i) {
@@ -102,7 +108,7 @@ int main(int argc, char *argv[]) {
     }
 
     SDL_Rect start_button = {
-        bg_w / 2 - reel_w,
+        win_w / 2 - reel_w,
         slot_y + reel_h + 20,
         reel_w * 2,
         reel_h / 2
@@ -113,6 +119,8 @@ int main(int argc, char *argv[]) {
         SDL_Event e;
         while (SDL_PollEvent(&e)) {
             if (e.type == SDL_QUIT) {
+                running = 0;
+            } else if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_ESCAPE) {
                 running = 0;
             } else if (e.type == SDL_MOUSEBUTTONDOWN) {
                 int mx = e.button.x;
@@ -142,7 +150,8 @@ int main(int argc, char *argv[]) {
         }
 
         SDL_RenderClear(ren);
-        SDL_RenderCopy(ren, background, NULL, NULL);
+        SDL_Rect bg_rect = {0, 0, win_w, win_h};
+        SDL_RenderCopy(ren, background, NULL, &bg_rect);
         for (int i = 0; i < NUM_REELS; ++i) {
             SDL_RenderCopy(ren, symbols[reels[i].current], NULL, &reel_rects[i]);
         }
