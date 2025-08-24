@@ -116,17 +116,25 @@ int main(int argc, char *argv[]) {
     int reel_h = (int)(win_h * reel_height_ratio);
     int spin_speed = reel_h / 8;
 
+    /*
+     * Show a small portion of the symbols above and below the center of the
+     * reel so it looks more like a cylindrical wheel instead of a flat card.
+     */
+    const float reveal_ratio = 0.2f; /* 20% of the symbol height */
+    int reel_visible_h = reel_h + (int)(reel_h * 2 * reveal_ratio);
+    int reel_margin = (reel_visible_h - reel_h) / 2;
+
     SDL_Rect reel_rects[NUM_REELS];
     for (int i = 0; i < NUM_REELS; ++i) {
         reel_rects[i].w = reel_w;
-        reel_rects[i].h = reel_h;
+        reel_rects[i].h = reel_visible_h;
         reel_rects[i].x = (int)(win_w * reel_centers[i] - reel_w / 2);
-        reel_rects[i].y = (int)(win_h * reel_y_center - reel_h / 2);
+        reel_rects[i].y = (int)(win_h * reel_y_center - reel_h / 2) - reel_margin;
     }
 
     SDL_Rect start_button = {
         win_w / 2 - reel_w,
-        reel_rects[0].y + reel_h + 20,
+        reel_rects[0].y + reel_margin + reel_h + 20,
         reel_w * 2,
         reel_h / 2
     };
@@ -181,14 +189,15 @@ int main(int argc, char *argv[]) {
         SDL_RenderCopy(ren, background, NULL, &bg_rect);
         for (int i = 0; i < NUM_REELS; ++i) {
             SDL_RenderSetClipRect(ren, &reel_rects[i]);
+            int base_y = reel_rects[i].y + reel_margin;
             SDL_Rect dest = {reel_rects[i].x,
-                             reel_rects[i].y - reel_h + (int)reels[i].offset,
+                             base_y - reel_h + (int)reels[i].offset,
                              reel_w,
                              reel_h};
             SDL_RenderCopy(ren, symbols[reels[i].prev], NULL, &dest);
-            dest.y = reel_rects[i].y + (int)reels[i].offset;
+            dest.y = base_y + (int)reels[i].offset;
             SDL_RenderCopy(ren, symbols[reels[i].current], NULL, &dest);
-            dest.y = reel_rects[i].y + reel_h + (int)reels[i].offset;
+            dest.y = base_y + reel_h + (int)reels[i].offset;
             SDL_RenderCopy(ren, symbols[reels[i].next], NULL, &dest);
             SDL_RenderSetClipRect(ren, NULL);
         }
