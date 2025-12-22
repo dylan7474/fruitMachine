@@ -124,7 +124,7 @@ int main(int argc, char *argv[]) {
      */
     const float reel_centers[NUM_REELS] = {0.2580f, 0.4929f, 0.7310f};
     const float reel_y_center = 0.3950f;
-    const float reel_window_height_ratio = 0.1030f;
+    const float reel_window_height_ratio = 0.1180f;
     const float reel_symbol_width_ratio = 0.1670f;
     const float reveal_ratio = 0.30f; /* show 30% of symbol above/below */
 
