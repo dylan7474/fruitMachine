@@ -57,6 +57,10 @@ int main(int argc, char *argv[]) {
 
     SDL_Renderer *ren = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     if (!ren) {
+        SDL_Log("SDL_CreateRenderer failed (%s), retrying with software renderer", SDL_GetError());
+        ren = SDL_CreateRenderer(win, -1, SDL_RENDERER_SOFTWARE);
+    }
+    if (!ren) {
         SDL_Log("SDL_CreateRenderer failed: %s", SDL_GetError());
         SDL_DestroyWindow(win);
         IMG_Quit();
@@ -119,10 +123,10 @@ int main(int argc, char *argv[]) {
      * artwork.  The numbers below are ratios of the overall window size so
      * the layout still scales if the window dimensions change.
      */
-    const float reel_centers[NUM_REELS] = {0.26f, 0.5f, 0.74f};
-    const float reel_y_center = 0.42f;
-    const float reel_width_ratio = 0.14f;
-    const float reel_height_ratio = 0.25f;
+    const float reel_centers[NUM_REELS] = {0.1937f, 0.3696f, 0.5439f};
+    const float reel_y_center = 0.3970f;
+    const float reel_width_ratio = 0.1250f;
+    const float reel_height_ratio = 0.0550f;
 
     int reel_w = (int)(bg_render_w * reel_width_ratio);
     int reel_h = (int)(bg_render_h * reel_height_ratio);
