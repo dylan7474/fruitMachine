@@ -77,6 +77,18 @@ int main(int argc, char *argv[]) {
     int win_w, win_h;
     SDL_GetWindowSize(win, &win_w, &win_h);
 
+    int bg_w, bg_h;
+    SDL_QueryTexture(background, NULL, NULL, &bg_w, &bg_h);
+    float bg_scale = (float)win_w / bg_w;
+    if ((float)win_h / bg_h < bg_scale) {
+        bg_scale = (float)win_h / bg_h;
+    }
+
+    int bg_render_w = (int)(bg_w * bg_scale);
+    int bg_render_h = (int)(bg_h * bg_scale);
+    int bg_render_x = (win_w - bg_render_w) / 2;
+    int bg_render_y = (win_h - bg_render_h) / 2;
+
     SDL_Texture *symbols[NUM_SYMBOLS];
     for (int i = 0; i < NUM_SYMBOLS; ++i) {
         symbols[i] = IMG_LoadTexture(ren, symbol_files[i]);
@@ -112,8 +124,8 @@ int main(int argc, char *argv[]) {
     const float reel_width_ratio = 0.14f;
     const float reel_height_ratio = 0.25f;
 
-    int reel_w = (int)(win_w * reel_width_ratio);
-    int reel_h = (int)(win_h * reel_height_ratio);
+    int reel_w = (int)(bg_render_w * reel_width_ratio);
+    int reel_h = (int)(bg_render_h * reel_height_ratio);
     int spin_speed = reel_h / 8;
 
     /*
@@ -128,12 +140,12 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < NUM_REELS; ++i) {
         reel_rects[i].w = reel_w;
         reel_rects[i].h = reel_visible_h;
-        reel_rects[i].x = (int)(win_w * reel_centers[i] - reel_w / 2);
-        reel_rects[i].y = (int)(win_h * reel_y_center - reel_h / 2) - reel_margin;
+        reel_rects[i].x = bg_render_x + (int)(bg_render_w * reel_centers[i] - reel_w / 2);
+        reel_rects[i].y = bg_render_y + (int)(bg_render_h * reel_y_center - reel_h / 2) - reel_margin;
     }
 
     SDL_Rect start_button = {
-        win_w / 2 - reel_w,
+        bg_render_x + bg_render_w / 2 - reel_w,
         reel_rects[0].y + reel_margin + reel_h + 20,
         reel_w * 2,
         reel_h / 2
@@ -185,7 +197,7 @@ int main(int argc, char *argv[]) {
         }
 
         SDL_RenderClear(ren);
-        SDL_Rect bg_rect = {0, 0, win_w, win_h};
+        SDL_Rect bg_rect = {bg_render_x, bg_render_y, bg_render_w, bg_render_h};
         SDL_RenderCopy(ren, background, NULL, &bg_rect);
         for (int i = 0; i < NUM_REELS; ++i) {
             SDL_RenderSetClipRect(ren, &reel_rects[i]);
