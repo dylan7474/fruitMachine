@@ -57,6 +57,10 @@ int main(int argc, char *argv[]) {
 
     SDL_Renderer *ren = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     if (!ren) {
+        SDL_Log("SDL_CreateRenderer failed (%s), retrying with software renderer", SDL_GetError());
+        ren = SDL_CreateRenderer(win, -1, SDL_RENDERER_SOFTWARE);
+    }
+    if (!ren) {
         SDL_Log("SDL_CreateRenderer failed: %s", SDL_GetError());
         SDL_DestroyWindow(win);
         IMG_Quit();
@@ -76,6 +80,18 @@ int main(int argc, char *argv[]) {
 
     int win_w, win_h;
     SDL_GetWindowSize(win, &win_w, &win_h);
+
+    int bg_w, bg_h;
+    SDL_QueryTexture(background, NULL, NULL, &bg_w, &bg_h);
+    float bg_scale = (float)win_w / bg_w;
+    if ((float)win_h / bg_h < bg_scale) {
+        bg_scale = (float)win_h / bg_h;
+    }
+
+    int bg_render_w = (int)(bg_w * bg_scale);
+    int bg_render_h = (int)(bg_h * bg_scale);
+    int bg_render_x = (win_w - bg_render_w) / 2;
+    int bg_render_y = (win_h - bg_render_h) / 2;
 
     SDL_Texture *symbols[NUM_SYMBOLS];
     for (int i = 0; i < NUM_SYMBOLS; ++i) {
@@ -103,40 +119,36 @@ int main(int argc, char *argv[]) {
     }
 
     /*
-     * Reel placement tuned to line up with the windows on the background
-     * artwork.  The numbers below are ratios of the overall window size so
-     * the layout still scales if the window dimensions change.
+     * Reel placement tuned from pixel measurements of FruitMachineBody.jpeg
+     * (2048x2048).  Ratios keep the layout aligned as the background scales.
      */
-    const float reel_centers[NUM_REELS] = {0.26f, 0.5f, 0.74f};
-    const float reel_y_center = 0.42f;
-    const float reel_width_ratio = 0.14f;
-    const float reel_height_ratio = 0.25f;
+    const float reel_centers[NUM_REELS] = {0.2580f, 0.4929f, 0.7310f};
+    const float reel_y_center = 0.3950f;
+    /* The cabinet windows are tall; triple the prior height ratio to fill them. */
+    const float reel_window_height_ratio = 0.3540f;
+    const float reel_symbol_width_ratio = 0.1670f;
+    const float reveal_ratio = 0.30f; /* show 30% of symbol above/below */
 
-    int reel_w = (int)(win_w * reel_width_ratio);
-    int reel_h = (int)(win_h * reel_height_ratio);
+    int reel_w = (int)(bg_render_w * reel_symbol_width_ratio);
+    int reel_visible_h = (int)(bg_render_h * reel_window_height_ratio);
+    int reel_h = (int)(reel_visible_h / (1.0f + 2.0f * reveal_ratio));
     int spin_speed = reel_h / 8;
-
-    /*
-     * Show a small portion of the symbols above and below the center of the
-     * reel so it looks more like a cylindrical wheel instead of a flat card.
-     */
-    const float reveal_ratio = 0.2f; /* 20% of the symbol height */
-    int reel_visible_h = reel_h + (int)(reel_h * 2 * reveal_ratio);
     int reel_margin = (reel_visible_h - reel_h) / 2;
 
     SDL_Rect reel_rects[NUM_REELS];
     for (int i = 0; i < NUM_REELS; ++i) {
         reel_rects[i].w = reel_w;
         reel_rects[i].h = reel_visible_h;
-        reel_rects[i].x = (int)(win_w * reel_centers[i] - reel_w / 2);
-        reel_rects[i].y = (int)(win_h * reel_y_center - reel_h / 2) - reel_margin;
+        reel_rects[i].x = bg_render_x + (int)(bg_render_w * reel_centers[i] - reel_w / 2);
+        reel_rects[i].y = bg_render_y + (int)(bg_render_h * reel_y_center - reel_h / 2) - reel_margin;
     }
 
+    /* Start button bounding box from image analysis (centered near 0.5, 0.77). */
     SDL_Rect start_button = {
-        win_w / 2 - reel_w,
-        reel_rects[0].y + reel_margin + reel_h + 20,
-        reel_w * 2,
-        reel_h / 2
+        bg_render_x + (int)(bg_render_w * 0.3500f),
+        bg_render_y + (int)(bg_render_h * 0.7000f),
+        (int)(bg_render_w * 0.3000f),
+        (int)(bg_render_h * 0.1390f)
     };
 
     int running = 1;
@@ -185,7 +197,7 @@ int main(int argc, char *argv[]) {
         }
 
         SDL_RenderClear(ren);
-        SDL_Rect bg_rect = {0, 0, win_w, win_h};
+        SDL_Rect bg_rect = {bg_render_x, bg_render_y, bg_render_w, bg_render_h};
         SDL_RenderCopy(ren, background, NULL, &bg_rect);
         for (int i = 0; i < NUM_REELS; ++i) {
             SDL_RenderSetClipRect(ren, &reel_rects[i]);
